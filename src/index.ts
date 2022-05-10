@@ -1,13 +1,17 @@
 import * as SolanaWeb3 from "@solana/web3.js";
+import 'dotenv/config';
+
 import { Connection, programs } from "@metaplex/js";
 import axios from "axios";
 
 import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
 
-const okayBearsPubKey = new SolanaWeb3.PublicKey(
-  "3xVDoLaecZwXXtN59o6T3Gfxwjcgf8Hc9RfoqBn995P9"
-); //new PublicKey(process.env.OKAY_BEARS_PUB_KEY);
+require('dotenv').config();
+
+const twitterUN = process.env.TWITTER_UN;
+const ta = process.env.TWITTER_API_KEY;
+const okayBearsPubKey = new SolanaWeb3.PublicKey(process.env.OKAY_PUB_KEY);
 
 const url = SolanaWeb3.clusterApiUrl("mainnet-beta");
 const solanaConnection = new SolanaWeb3.Connection(url, "confirmed");
@@ -32,6 +36,8 @@ if (VerifyEnvVars()) {
   console.log("Error: Check Env Vars");
 }
 
+
+//there is a lot going on in here I should break it down.
 async function runBot() {
   console.log("---Start of Run Bot---");
 
@@ -50,7 +56,7 @@ async function runBot() {
         options
       );
       if (!signatures.length) {
-        await Timer(pollingInverval);
+        await sleepyDev(pollingInverval);
         continue;
       }
     } catch (e) {
@@ -63,7 +69,7 @@ async function runBot() {
       const innerRpcInterval = 5000; //ms
       try {
         let { signature } = signatures[i];
-        await Timer(innerRpcInterval);
+        await sleepyDev(innerRpcInterval);
         const txn = await solanaConnection.getTransaction(signature);
         var isGreen = false;
 
@@ -102,12 +108,13 @@ async function runBot() {
 
             // looping here with nested  is dumb. Make it a Dict and search the keys for 'Green'
             for (let attribute of metadata.attributes) {
-              if (attribute.trait_type === "Fur") {
+              if (attribute.trait_type === "Fur") { // this could be one conditiona &&
                 if (attribute.value === "Green") {
                   isGreen = true;
                 }
               }
             }
+           
             if (isGreen) {
               printSalesInfo(
                 dateTimeString,
@@ -142,7 +149,16 @@ function VerifyEnvVars(): boolean {
   return true;
 }
 
-const Timer = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+const postSaleToTwitter = async (salesInfo: string) => {
+
+
+
+
+
+}
+
+
 
 const getMetadata = async (tokenPubKey: string) => {
   try {
@@ -172,3 +188,5 @@ const printSalesInfo = (
   console.log("Marketplace: ", marketplace);
   console.log("-------------------------------------------");
 };
+
+const sleepyDev = (ms: number) => new Promise((res) => setTimeout(res, ms));
