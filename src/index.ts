@@ -26,13 +26,13 @@ const pollingInverval = 10000; //ms
 
 //Entry
 console.log("---Starting bot---");
-if (VerifyEnvVars()) { // Build this function out now that we have the env set up
+if (VerifyEnvVars()) { // TODO: Build this function out now that we have the env set up
   runBot();
 } else {
   console.log("Error: Check Env Vars");
 }
 
-//there is a lot going on in here I should break it down. - do this last after smaller refactors
+// TODO:there is a lot going on in here I should break it down. - do this last after smaller refactors
 async function runBot() {
   console.log("---Start of Run Bot---");
 
@@ -70,13 +70,13 @@ async function runBot() {
 
         let isGreen = false;
 
-        //fix this fuckery (like log or decided what checks we're doing)
+        //TODO: fix this fuckery (like log or decided what checks we're doing)
         if (txn != null) {
           if (txn?.meta && txn?.meta?.err != null) {
             continue;
           }
 
-          // do something better than this here like build a helper function to pull this numeric shit out
+          //TODO: do something better than this here like build a helper function to pull this numeric shit out
           // or just confirm the objects in question are not null before the maths
           let blockTime = txn?.blockTime ?? 0;
           let preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
@@ -98,13 +98,13 @@ async function runBot() {
           let mint = txn?.meta?.postTokenBalances![0].mint ?? "";
 
           if (MarketplaceMap.get(marketplaceAccount)) {
-            const metadata = await getMetadata(mint); // again use of ! to tell compiler wont be null + null coalescing since getMaetaData takes string - fix hackfest that this is
+            const metadata = await getMetadata(mint); TODO:// again use of ! to tell compiler wont be null + null coalescing since getMaetaData takes string - fix hackfest that this is
             if (!metadata) {
               console.log("Error: No metadata");
               continue;
             }
 
-            // looping here with nested  is dumb. Make it a Dict and search the keys for 'Green'
+            //TODO: looping here with nested  is dumb. Make it a Dict and search the keys for 'Green'
             for (let attribute of metadata.attributes) {
               if (attribute.trait_type === "Fur") {
                 // this could be one conditiona &&
@@ -122,7 +122,8 @@ async function runBot() {
                 metadata.name,
                 MarketplaceMap.get(marketplaceAccount) ?? "",
                 metadata.image
-              ); // fix this
+              ); 
+              // TODO: (after refactors)
               // await postSaleToTwitter()
             } else {
               console.log("Info: Bear was not Green");
@@ -142,6 +143,7 @@ async function runBot() {
       options.until = lastKnownSignature;
     }
   }
+  //TODO: bring in logger to make shell output easier
   console.log("Exit main program loop - Reason:", "<error message here>");
 }
 
