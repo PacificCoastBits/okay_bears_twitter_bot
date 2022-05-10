@@ -1,13 +1,14 @@
 import * as SolanaWeb3 from "@solana/web3.js";
-import 'dotenv/config';
+import "dotenv/config";
 
 import { Connection, programs } from "@metaplex/js";
 import axios from "axios";
 
 import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
+import { SolanaConnectionOptions } from "./interfaces/SolanaConnectionOptions";
 
-require('dotenv').config();
+require("dotenv").config();
 
 const twitterUN = process.env.TWITTER_UN;
 const ta = process.env.TWITTER_API_KEY;
@@ -21,35 +22,29 @@ const {
   metadata: { Metadata },
 } = programs;
 
-interface Options {
-  until: string | undefined;
-}
-
 const pollingInverval = 10000; //ms
-//Probably toss in a const file
 
 //Entry
 console.log("---Starting bot---");
-if (VerifyEnvVars()) {
+if (VerifyEnvVars()) { // Build this function out now that we have the env set up
   runBot();
 } else {
   console.log("Error: Check Env Vars");
 }
 
-
-//there is a lot going on in here I should break it down.
+//there is a lot going on in here I should break it down. - do this last after smaller refactors
 async function runBot() {
   console.log("---Start of Run Bot---");
 
+  let isOkay = true;
   let signatures;
   let lastKnownSignature;
 
-  let options = {} as Options; // what options get passed here
-  //seed this with last sales tx when I launch the bot
-  options.until =
-    "5WbCp1iPYHW37LoozivhdMpj1EHxjibRGku6kiA9GH9Vn2GNpBPbHCoF3bRE7QYpumQyYJuWEmfdi6XKLAK4viSg"; // recent tras sig so we don't have to go to the dawn of time
-  //prob do something a little better than run till then end of time with no breaks...
-  while (true) {
+  let options = {} as SolanaConnectionOptions; 
+
+  options.until = process.env.SEED_TRANSACTION
+
+  while (isOkay) {
     try {
       signatures = await solanaConnection.getSignaturesForAddress(
         okayBearsPubKey,
@@ -61,6 +56,7 @@ async function runBot() {
       }
     } catch (e) {
       console.log("Error fetching sigs ", e);
+      await sleepyDev(pollingInverval);
       continue;
     }
 
@@ -71,12 +67,14 @@ async function runBot() {
         let { signature } = signatures[i];
         await sleepyDev(innerRpcInterval);
         const txn = await solanaConnection.getTransaction(signature);
-        var isGreen = false;
 
+        let isGreen = false;
+
+        //fix this fuckery (like log or decided what checks we're doing)
         if (txn != null) {
           if (txn?.meta && txn?.meta?.err != null) {
             continue;
-          } // probably log or something..
+          }
 
           // do something better than this here like build a helper function to pull this numeric shit out
           // or just confirm the objects in question are not null before the maths
@@ -108,13 +106,14 @@ async function runBot() {
 
             // looping here with nested  is dumb. Make it a Dict and search the keys for 'Green'
             for (let attribute of metadata.attributes) {
-              if (attribute.trait_type === "Fur") { // this could be one conditiona &&
+              if (attribute.trait_type === "Fur") {
+                // this could be one conditiona &&
                 if (attribute.value === "Green") {
                   isGreen = true;
                 }
               }
             }
-           
+
             if (isGreen) {
               printSalesInfo(
                 dateTimeString,
@@ -143,22 +142,14 @@ async function runBot() {
       options.until = lastKnownSignature;
     }
   }
+  console.log("Exit main program loop - Reason:", "<error message here>");
 }
 
 function VerifyEnvVars(): boolean {
   return true;
 }
 
-
-const postSaleToTwitter = async (salesInfo: string) => {
-
-
-
-
-
-}
-
-
+const postSaleToTwitter = async (salesInfo: string) => {};
 
 const getMetadata = async (tokenPubKey: string) => {
   try {
