@@ -26,7 +26,7 @@ const pollingInverval = 10000; //ms
 
 //Entry
 console.log("---Starting bot---");
-if (VerifyEnvVars()) { // TODO: Build this function out now that we have the env set up
+if (VerifyEnvVars()) {
   runBot();
 } else {
   console.log("Error: Check Env Vars");
@@ -40,9 +40,9 @@ async function runBot() {
   let signatures;
   let lastKnownSignature;
 
-  let options = {} as SolanaConnectionOptions; 
+  let options = {} as SolanaConnectionOptions;
 
-  options.until = process.env.SEED_TRANSACTION
+  options.until = process.env.SEED_TRANSACTION;
 
   while (isOkay) {
     try {
@@ -70,70 +70,65 @@ async function runBot() {
 
         let isGreen = false;
 
-        //TODO: fix this fuckery (like log or decided what checks we're doing)
-        if (txn != null) {
-          if (txn?.meta && txn?.meta?.err != null) {
+        //Do something better than continue over?
+        if (txn?.meta?.err != null) {
+          console.log("Error: getTransaction errored with: ", txn.meta.err);
+          continue;
+        }
+
+        //TODO: potentailly add checks for 0 values? not high priority
+
+        let blockTime = txn?.blockTime ?? 0;
+        let preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
+        let postBalanceZeroIndex = txn?.meta?.postBalances[0] ?? 0;
+
+        const dateString = new Date(blockTime * 1000).toLocaleDateString();
+        const hourString = new Date(blockTime * 1000).toLocaleTimeString();
+        const dateTimeString = `${dateString} ${hourString}`;
+
+        const price =
+          Math.abs(preBalanceZeroIndex - postBalanceZeroIndex) /
+          SolanaWeb3.LAMPORTS_PER_SOL;
+
+        const accounts = txn?.transaction.message.accountKeys;
+        let accountsLength = accounts?.length ?? 0;
+
+        const marketplaceAccount = accounts![accountsLength - 1].toString();
+
+        let mint = txn?.meta?.postTokenBalances![0].mint ?? "";
+
+        if (MarketplaceMap.get(marketplaceAccount)) {
+          const metadata = await getMetadata(mint);
+          if (!metadata) {
+            console.log("Error: No metadata");
             continue;
           }
 
-          //TODO: do something better than this here like build a helper function to pull this numeric shit out
-          // or just confirm the objects in question are not null before the maths
-          let blockTime = txn?.blockTime ?? 0;
-          let preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
-          let postBalanceZeroIndex = txn?.meta?.postBalances[0] ?? 0;
+          isGreen =
+            metadata.attributes.find(x => x.trait_type === "Fur")?.value ===
+            "Green"
+              ? true
+              : false;
 
-          const dateString = new Date(blockTime * 1000).toLocaleDateString();
-          const hourString = new Date(blockTime * 1000).toLocaleTimeString();
-          const dateTimeString = `${dateString} ${hourString}`;
-
-          const price =
-            Math.abs(preBalanceZeroIndex - postBalanceZeroIndex) /
-            SolanaWeb3.LAMPORTS_PER_SOL;
-
-          const accounts = txn?.transaction.message.accountKeys;
-          let accountsLength = accounts?.length ?? 0;
-
-          const marketplaceAccount = accounts![accountsLength - 1].toString();
-
-          let mint = txn?.meta?.postTokenBalances![0].mint ?? "";
-
-          if (MarketplaceMap.get(marketplaceAccount)) {
-            const metadata = await getMetadata(mint); TODO:// again use of ! to tell compiler wont be null + null coalescing since getMaetaData takes string - fix hackfest that this is
-            if (!metadata) {
-              console.log("Error: No metadata");
-              continue;
-            }
-
-            //TODO: looping here with nested  is dumb. Make it a Dict and search the keys for 'Green'
-            for (let attribute of metadata.attributes) {
-              if (attribute.trait_type === "Fur") {
-                // this could be one conditiona &&
-                if (attribute.value === "Green") {
-                  isGreen = true;
-                }
-              }
-            }
-
-            if (isGreen) {
-              printSalesInfo(
-                dateTimeString,
-                price,
-                signature,
-                metadata.name,
-                MarketplaceMap.get(marketplaceAccount) ?? "",
-                metadata.image
-              ); 
-              // TODO: (after refactors)
-              // await postSaleToTwitter()
-            } else {
-              console.log("Info: Bear was not Green");
-            }
+          if (isGreen) {
+            printSalesInfo(
+              dateTimeString,
+              price,
+              signature,
+              metadata.name,
+              MarketplaceMap.get(marketplaceAccount) ?? "",
+              metadata.image
+            );
+            // TODO: (after refactors)
+            // await postSaleToTwitter()
           } else {
-            console.log("Error - marketplace not found");
+            console.log("Info: Bear was not Green");
           }
+        } else {
+          console.log("Error - marketplace not found");
         }
       } catch (e) {
-        console.log("error going through sigs ", e);
+        console.log("error going through transactions ", e);
         continue;
       }
     }
@@ -148,6 +143,18 @@ async function runBot() {
 }
 
 function VerifyEnvVars(): boolean {
+  if (!process.env.OKAY_PUB_KEY) {
+    console.log("Error: Missing Project PubKey");
+    return false;
+  }
+  if (!process.env.TWITTER_API_KEY || !process.env.TWITTER_UN) {
+    console.log("Error: Missing Twitter Info");
+    return false;
+  }
+  if (!process.env.SEED_TRANSACTION) {
+    console.log("Error: No Seed Transactions Configured");
+    return false;
+  }
   return true;
 }
 
