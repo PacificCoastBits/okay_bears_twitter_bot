@@ -109,28 +109,16 @@ async function runBot() {
                         continue;
                     }
 
-                    isGreen =
-                        metadata.attributes.find((x) => x.trait_type === "Fur")
-                            ?.value === "Green"
-                            ? true
-                            : false;
-
-                    if (isGreen) {
-                        printSalesInfo(
-                            dateTimeString,
-                            price,
-                            signature,
-                            metadata.name,
-                            MarketplaceMap.get(marketplaceAccount) ?? "",
-                            metadata.image
-                        );
-                        // TODO: (after refactors)
-                        // await postSaleToTwitter()
-                    } else {
-                        log.info("Bear was not Green");
-                    }
+                    await handleSale(
+                        metadata,
+                        dateTimeString,
+                        price,
+                        signature,
+                        marketplaceAccount
+                    );
                 } else {
                     log.warn(`Marketplace not found: ${marketplaceAccount}`);
+                    //------------------------------------------------------------------
                 }
             } catch (e) {
                 log.error("error going through transactions ", e);
@@ -161,6 +149,34 @@ function VerifyEnvVars(): boolean {
     }
     return true;
 }
+
+const handleSale = async (
+    bearMetaData: BearMetadata,
+    timeOfSale: string,
+    salePrice: number,
+    signature: string,
+    marketplaceAccount: string
+) => {
+    let isGreen =
+        bearMetaData.attributes.find((x) => x.trait_type === "Fur")?.value ===
+        "Green"
+            ? true
+            : false;
+
+    if (isGreen) {
+        printSalesInfo(
+            timeOfSale,
+            salePrice,
+            signature,
+            bearMetaData.name,
+            MarketplaceMap.get(marketplaceAccount) ?? "Unknown",
+            bearMetaData.image
+        );
+        // TODO: await postSaleToTwitter()
+    } else {
+        log.info("Bear was not Green");
+    }
+};
 
 const postSaleToTwitter = async (salesInfo: string) => {};
 
