@@ -109,6 +109,7 @@ async function runBot() {
                         continue;
                     }
 
+                    //make params object?
                     await handleSale(
                         metadata,
                         dateTimeString,
@@ -150,6 +151,7 @@ function VerifyEnvVars(): boolean {
     return true;
 }
 
+//probably makr params object since I use them all below again in he call to post to tiwtter
 const handleSale = async (
     bearMetaData: BearMetadata,
     timeOfSale: string,
@@ -209,4 +211,8 @@ const printSalesInfo = (
     log.info("-------------------------------------------");
 };
 
-const sleepyDev = (ms: number) => new Promise((res) => setTimeout(res, ms));
+const sleepyDev = (ms: number) =>
+    new Promise((res) => {
+        setTimeout(res, ms);
+        log.info(`Dev Sleeping for ${ms} ms`);
+    });
