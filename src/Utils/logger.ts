@@ -1,7 +1,7 @@
 const DEFAULT_NAMESPACE = "Application";
 
-const info = (message: any, namespace?: String | unknown) => {
-    if (typeof message === 'string') {
+const info = (message: unknown, namespace?: string | unknown) => {
+    if (typeof message === "string") {
         console.log(
             `[${getDate()}][${
                 namespace || DEFAULT_NAMESPACE
@@ -15,8 +15,8 @@ const info = (message: any, namespace?: String | unknown) => {
     }
 };
 
-const warn = (message: any, namespace?: String | unknown) => {
-    if (typeof message === 'string') {
+const warn = (message: unknown, namespace?: string | unknown) => {
+    if (typeof message === "string") {
         console.log(
             `[${getDate()}][${
                 namespace || DEFAULT_NAMESPACE
@@ -30,8 +30,8 @@ const warn = (message: any, namespace?: String | unknown) => {
     }
 };
 
-const error = (message: any, namespace?: String | unknown) => {
-    if (typeof message === 'string') {
+const error = (message: unknown, namespace?: string | unknown) => {
+    if (typeof message === "string") {
         console.log(
             `[${getDate()}][${
                 namespace || DEFAULT_NAMESPACE
@@ -52,7 +52,7 @@ const getDate = () => {
 const logging = {
     info,
     warn,
-    error
+    error,
 };
 
 export default logging;

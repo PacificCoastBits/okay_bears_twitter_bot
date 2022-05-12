@@ -9,8 +9,6 @@ import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
 import { SolanaConnectionOptions } from "./interfaces/SolanaConnectionOptions";
 
-require("dotenv").config();
-
 const twitterUN = process.env.TWITTER_UN;
 const ta = process.env.TWITTER_API_KEY;
 const okayBearsPubKey = new SolanaWeb3.PublicKey(process.env.OKAY_PUB_KEY);
@@ -37,11 +35,11 @@ if (VerifyEnvVars()) {
 async function runBot() {
     log.info("---Start of Run Bot---");
 
-    let isOkay = true;
+    const isOkay = true;
     let signatures;
     let lastKnownSignature;
 
-    let options = {} as SolanaConnectionOptions;
+    const options = {} as SolanaConnectionOptions;
 
     options.until = process.env.SEED_TRANSACTION;
 
@@ -64,11 +62,9 @@ async function runBot() {
         for (let i = signatures.length - 1; i >= 0; i--) {
             const innerRpcInterval = 5000; //ms
             try {
-                let { signature } = signatures[i];
+                const { signature } = signatures[i];
                 await sleepyDev(innerRpcInterval);
                 const txn = await solanaConnection.getTransaction(signature);
-
-                let isGreen = false;
 
                 //Do something better than continue over?
                 if (txn?.meta?.err != null) {
@@ -78,9 +74,9 @@ async function runBot() {
 
                 //TODO: potentailly add checks for 0 values? not high priority
 
-                let blockTime = txn?.blockTime ?? 0;
-                let preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
-                let postBalanceZeroIndex = txn?.meta?.postBalances[0] ?? 0;
+                const blockTime = txn?.blockTime ?? 0;
+                const preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
+                const postBalanceZeroIndex = txn?.meta?.postBalances[0] ?? 0;
 
                 const dateString = new Date(
                     blockTime * 1000
@@ -95,12 +91,12 @@ async function runBot() {
                     SolanaWeb3.LAMPORTS_PER_SOL;
 
                 const accounts = txn?.transaction.message.accountKeys;
-                let accountsLength = accounts?.length ?? 0;
+                const accountsLength = accounts?.length ?? 0;
 
                 const marketplaceAccount =
                     accounts![accountsLength - 1].toString();
 
-                let mint = txn?.meta?.postTokenBalances![0].mint ?? "";
+                const mint = txn?.meta?.postTokenBalances?.[0].mint ?? "";
 
                 if (MarketplaceMap.get(marketplaceAccount)) {
                     const metadata = await getMetadata(mint);
@@ -159,7 +155,7 @@ const handleSale = async (
     signature: string,
     marketplaceAccount: string
 ) => {
-    let isGreen =
+    const isGreen =
         bearMetaData.attributes.find((x) => x.trait_type === "Fur")?.value ===
         "Green"
             ? true
@@ -180,7 +176,9 @@ const handleSale = async (
     }
 };
 
-const postSaleToTwitter = async (salesInfo: string) => {};
+const postSaleToTwitter = async (salesInfo: string) => {
+    //TODO: This
+};
 
 const getMetadata = async (tokenPubKey: string) => {
     try {
