@@ -2,8 +2,10 @@ import * as SolanaWeb3 from "@solana/web3.js";
 import "dotenv/config";
 
 import { Connection, programs } from "@metaplex/js";
+
 import axios from "axios";
-import log from "./Utils/logger";
+import log from "./utils/logger";
+import twitterClient from "./utils/twitterClient";
 
 import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
@@ -31,7 +33,7 @@ if (VerifyEnvVars()) {
     log.error("Check Env Vars");
 }
 
-// TODO:there is a lot going on in here I should break it down. - do this last after smaller refactors
+// TODO: Could pull the main program loop up a level but I don't think it matters too much
 async function runBot() {
     log.info("---Start of Run Bot---");
 
@@ -115,7 +117,6 @@ async function runBot() {
                     );
                 } else {
                     log.warn(`Marketplace not found: ${marketplaceAccount}`);
-                    //------------------------------------------------------------------
                 }
             } catch (e) {
                 log.error("error going through transactions ", e);
@@ -177,7 +178,16 @@ const handleSale = async (
 };
 
 const postSaleToTwitter = async (salesInfo: string) => {
-    //TODO: This
+    const tweet = `Okay Bears Sale! `;
+
+    try {
+        const res = await twitterClient.tweets.statusesUpdate({
+            status: tweet,
+        });
+        log.info("Tweet sent!", res); //TODO: Look as res - see if there is anything we want to pull out to log
+    } catch (e) {
+        log.error("Something went wrong tweeting:", e);
+    }
 };
 
 const getMetadata = async (tokenPubKey: string) => {
