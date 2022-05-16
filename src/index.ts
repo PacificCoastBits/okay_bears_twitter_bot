@@ -185,6 +185,7 @@ const handleSale = async (bearSalesInfo: BearSalesInfo) => {
 };
 
 const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
+    //TODO: I should probably download the image then upload it as media then link to it in the sales tweet. Below code is kinda lazy
     const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} at ${bearSalesInfo.timeOfSale} on ${bearSalesInfo.marketplaceName} for $${bearSalesInfo.salesPrice}. Signatue: ${bearSalesInfo.signature}. ${bearSalesInfo.bearMetaData.image}`;
 
     try {
