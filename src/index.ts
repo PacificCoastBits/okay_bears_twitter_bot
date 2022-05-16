@@ -10,9 +10,10 @@ import twitterClient from "./utils/twitterClient";
 import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
 import { SolanaConnectionOptions } from "./interfaces/SolanaConnectionOptions";
+import { BearSalesInfo } from "./interfaces/BearSalesInfo";
+import { Http2ServerResponse } from "http2";
+import { TwitterResponse } from "./interfaces/TwitterResponse";
 
-const twitterUN = process.env.TWITTER_UN;
-const ta = process.env.TWITTER_API_KEY;
 const okayBearsPubKey = new SolanaWeb3.PublicKey(process.env.OKAY_PUB_KEY);
 
 const url = SolanaWeb3.clusterApiUrl("mainnet-beta");
@@ -95,29 +96,36 @@ async function runBot() {
                 const accounts = txn?.transaction.message.accountKeys;
                 const accountsLength = accounts?.length ?? 0;
 
+                //yeah idk dude.. I should probably look into this as opposed to just assuming it works..
                 const marketplaceAccount =
                     accounts![accountsLength - 1].toString();
 
                 const mint = txn?.meta?.postTokenBalances?.[0].mint ?? "";
 
-                if (MarketplaceMap.get(marketplaceAccount)) {
-                    const metadata = await getMetadata(mint);
-                    if (!metadata) {
-                        log.warn(`No metadata for mint value: ${mint}`);
-                        continue;
-                    }
-
-                    //make params object?
-                    await handleSale(
-                        metadata,
-                        dateTimeString,
-                        price,
-                        signature,
-                        marketplaceAccount
-                    );
-                } else {
-                    log.warn(`Marketplace not found: ${marketplaceAccount}`);
+                const metadata = await getMetadata(mint);
+                if (!metadata) {
+                    log.warn(`No metadata for mint value: ${mint}`);
+                    continue;
                 }
+
+                const marketplaceAccountName =
+                    MarketplaceMap.get(marketplaceAccount) ?? "Unknown";
+
+                if (marketplaceAccountName === "Unknown") {
+                    log.warn(
+                        `Marketplace Account Name not found for: ${marketplaceAccount}`
+                    );
+                }
+
+                const bearSalesInfo = {
+                    bearMetaData: metadata,
+                    timeOfSale: dateTimeString,
+                    salesPrice: price,
+                    signature: signature,
+                    marketplaceName: MarketplaceMap.get(marketplaceAccount),
+                } as BearSalesInfo;
+
+                await handleSale(bearSalesInfo);
             } catch (e) {
                 log.error("error going through transactions ", e);
                 continue;
@@ -137,7 +145,12 @@ function VerifyEnvVars(): boolean {
         log.error("Missing Project PubKey");
         return false;
     }
-    if (!process.env.TWITTER_API_KEY || !process.env.TWITTER_UN) {
+    if (
+        !process.env.TWITTER_API_KEY ||
+        !process.env.TWITTER_API_KEY_SECRET ||
+        !process.env.TWITTER_ACCESS_TOKEN ||
+        !process.env.TWITTER_ACCESS_TOKEN_SECRET
+    ) {
         log.error("Missing Twitter Info");
         return false;
     }
@@ -148,37 +161,31 @@ function VerifyEnvVars(): boolean {
     return true;
 }
 
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    if (error instanceof Http2ServerResponse) return error.statusMessage;
+    return String(error);
+}
+
 //probably makr params object since I use them all below again in he call to post to tiwtter
-const handleSale = async (
-    bearMetaData: BearMetadata,
-    timeOfSale: string,
-    salePrice: number,
-    signature: string,
-    marketplaceAccount: string
-) => {
+const handleSale = async (bearSalesInfo: BearSalesInfo) => {
     const isGreen =
-        bearMetaData.attributes.find((x) => x.trait_type === "Fur")?.value ===
-        "Green"
+        bearSalesInfo.bearMetaData.attributes.find(
+            (x) => x.trait_type === "Fur"
+        )?.value === "Green"
             ? true
             : false;
 
     if (isGreen) {
-        printSalesInfo(
-            timeOfSale,
-            salePrice,
-            signature,
-            bearMetaData.name,
-            MarketplaceMap.get(marketplaceAccount) ?? "Unknown",
-            bearMetaData.image
-        );
-        // TODO: await postSaleToTwitter()
+        printSalesInfo(bearSalesInfo);
+        await postSaleToTwitter(bearSalesInfo);
     } else {
         log.info("Bear was not Green");
     }
 };
 
-const postSaleToTwitter = async (salesInfo: string) => {
-    const tweet = `Okay Bears Sale! `;
+const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
+    const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} at ${bearSalesInfo.timeOfSale} on ${bearSalesInfo.marketplaceName} for $${bearSalesInfo.salesPrice}. Signatue: ${bearSalesInfo.signature}. ${bearSalesInfo.bearMetaData.image}`;
 
     try {
         const res = await twitterClient.tweets.statusesUpdate({
@@ -186,7 +193,13 @@ const postSaleToTwitter = async (salesInfo: string) => {
         });
         log.info("Tweet sent!", res); //TODO: Look as res - see if there is anything we want to pull out to log
     } catch (e) {
-        log.error("Something went wrong tweeting:", e);
+        //I should probably expand on TwitterResponse interface so I don't have to log json but it works
+        const errorResponse = <TwitterResponse>e;
+        if (errorResponse) {
+            log.error(`Something went wrong tweeting: ${errorResponse.data}`);
+        } else {
+            log.error(`Something went wrong tweeting: ${getErrorMessage(e)}`);
+        }
     }
 };
 
@@ -202,20 +215,15 @@ const getMetadata = async (tokenPubKey: string) => {
     }
 };
 
-const printSalesInfo = (
-    date: string,
-    price: number,
-    signature: string,
-    title: string,
-    marketplace: string,
-    imageURL: string
-) => {
+const printSalesInfo = (bearSalesInfo: BearSalesInfo) => {
     log.info("-------------------------------------------");
-    log.info(`Sale at ${date} ---> ${price} SOL`);
-    log.info(`Signature: ${signature}`);
-    log.info(`Name: ${title}`);
-    log.info(`Image: ${imageURL}`);
-    log.info(`Marketplace: ${marketplace}`);
+    log.info(
+        `Sale at ${bearSalesInfo.timeOfSale} ---> ${bearSalesInfo.salesPrice} SOL`
+    );
+    log.info(`Signature: ${bearSalesInfo.signature}`);
+    log.info(`Name: ${bearSalesInfo.bearMetaData.name}`);
+    log.info(`Image: ${bearSalesInfo.bearMetaData.image}`);
+    log.info(`Marketplace: ${bearSalesInfo.marketplaceName}`);
     log.info("-------------------------------------------");
 };
 
