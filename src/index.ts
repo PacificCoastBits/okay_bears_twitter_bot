@@ -3,7 +3,7 @@ import "dotenv/config";
 
 import { Connection, programs } from "@metaplex/js";
 
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import log from "./utils/logger";
 import twitterClient from "./utils/twitterClient";
 
@@ -11,8 +11,8 @@ import { MarketplaceMap } from "./constants/marketplaces";
 import { BearMetadata } from "./interfaces/BearMetadata";
 import { SolanaConnectionOptions } from "./interfaces/SolanaConnectionOptions";
 import { BearSalesInfo } from "./interfaces/BearSalesInfo";
-import { Http2ServerResponse } from "http2";
 import { TwitterResponse } from "./interfaces/TwitterResponse";
+import { MediaUpload } from "twitter-api-client";
 
 const okayBearsPubKey = new SolanaWeb3.PublicKey(process.env.OKAY_PUB_KEY);
 
@@ -46,6 +46,9 @@ async function runBot() {
 
     options.until = process.env.SEED_TRANSACTION;
 
+    //So if it's not going to be pub/sub having it in a loop is still not the best idea.
+    //Consider introducing a job scheduler and having that execute on x interval then
+    //just have the app suspended or in some similar state..I think I can do this all with node-cron
     while (isOkay) {
         try {
             signatures = await solanaConnection.getSignaturesForAddress(
@@ -163,7 +166,6 @@ function VerifyEnvVars(): boolean {
 
 function getErrorMessage(error: unknown) {
     if (error instanceof Error) return error.message;
-    if (error instanceof Http2ServerResponse) return error.statusMessage;
     return String(error);
 }
 
@@ -184,14 +186,28 @@ const handleSale = async (bearSalesInfo: BearSalesInfo) => {
 };
 
 const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
-    //TODO: I should probably download the image then upload it as media then link to it in the sales tweet. Below code is kinda lazy
-    const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} at ${bearSalesInfo.timeOfSale} on ${bearSalesInfo.marketplaceName} for $${bearSalesInfo.salesPrice}. Signatue: ${bearSalesInfo.signature}. ${bearSalesInfo.bearMetaData.image}`;
-
     try {
+        const image: AxiosResponse = await axios.get(
+            bearSalesInfo.bearMetaData.image,
+            {
+                responseType: "arraybuffer",
+            }
+        );
+
+        // Needs to be wrapped in the try catch
+        const media: MediaUpload = await twitterClient.media.mediaUpload({
+            media: Buffer.from(image.data, "binary").toString("base64"),
+        });
+
+        //signature should be solscan link.. not just the tx lol
+        const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} at ${bearSalesInfo.timeOfSale} on ${bearSalesInfo.marketplaceName} for $${bearSalesInfo.salesPrice}. Signatue: ${bearSalesInfo.signature}.`;
+
         const res = await twitterClient.tweets.statusesUpdate({
             status: tweet,
+            media_ids: media.media_id_string,
         });
         log.info("Tweet sent!", res); //TODO: Look as res - see if there is anything we want to pull out to log
+        // This catch block is a little messy it could probably be cleaned up
     } catch (e) {
         //I should probably expand on TwitterResponse interface so I don't have to log json but it works
         const errorResponse = <TwitterResponse>e;
@@ -210,8 +226,8 @@ const getMetadata = async (tokenPubKey: string) => {
         const { data } = await axios.get<BearMetadata>(resp.data.data.uri);
 
         return data;
-    } catch (error) {
-        log.error("fetching metadata: ", error);
+    } catch (e) {
+        log.error(`fetching metadata: ${getErrorMessage(e)}`);
     }
 };
 
