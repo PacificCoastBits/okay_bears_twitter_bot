@@ -167,7 +167,6 @@ function getErrorMessage(error: unknown) {
     return String(error);
 }
 
-//probably makr params object since I use them all below again in he call to post to tiwtter
 const handleSale = async (bearSalesInfo: BearSalesInfo) => {
     const isGreen =
         bearSalesInfo.bearMetaData.attributes.find(
