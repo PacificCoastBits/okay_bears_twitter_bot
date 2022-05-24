@@ -72,13 +72,17 @@ async function runBot() {
                 await sleepyDev(innerRpcInterval);
                 const txn = await solanaConnection.getTransaction(signature);
 
-                //Do something better than continue over?
+                //Do something better than continue over? TODO: Also this is spitting out [object, object] in some cases..Fix that
                 if (txn?.meta?.err != null) {
-                    log.warn("getTransaction errored with: ", txn.meta.err);
+                    log.warn(
+                        `getTransaction errored with: ${getErrorMessage(
+                            txn.meta.err
+                        )}`
+                    );
                     continue;
                 }
 
-                //TODO: potentailly add checks for 0 values? not high priority
+                //potentailly add checks for 0 values? not high priority
 
                 const blockTime = txn?.blockTime ?? 0;
                 const preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
@@ -170,7 +174,7 @@ function getErrorMessage(error: unknown) {
 }
 
 const handleSale = async (bearSalesInfo: BearSalesInfo) => {
-    const isGreen =
+    const isGreen = // true; For Testing
         bearSalesInfo.bearMetaData.attributes.find(
             (x) => x.trait_type === "Fur"
         )?.value === "Green"
@@ -194,20 +198,19 @@ const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
             }
         );
 
-        // Needs to be wrapped in the try catch
         const media: MediaUpload = await twitterClient.media.mediaUpload({
             media: Buffer.from(image.data, "binary").toString("base64"),
         });
 
-        //signature should be solscan link.. not just the tx lol
-        const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} at ${bearSalesInfo.timeOfSale} on ${bearSalesInfo.marketplaceName} for $${bearSalesInfo.salesPrice}. Signatue: ${bearSalesInfo.signature}.`;
+        //signature should be solscan link.. not just the tx
+        const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} \n Time Of Sale: ${bearSalesInfo.timeOfSale}\n Marketplace: ${bearSalesInfo.marketplaceName}\n Price:${bearSalesInfo.salesPrice} SOL \n Txn: ${bearSalesInfo.signature}.`;
 
         const res = await twitterClient.tweets.statusesUpdate({
             status: tweet,
             media_ids: media.media_id_string,
         });
         log.info("Tweet sent!", res); //TODO: Look as res - see if there is anything we want to pull out to log
-        // This catch block is a little messy it could probably be cleaned up
+        // This catch block is a little messy it could probably be cleaned up by just building an error handler that's more than a basic function
     } catch (e) {
         //I should probably expand on TwitterResponse interface so I don't have to log json but it works
         const errorResponse = <TwitterResponse>e;
