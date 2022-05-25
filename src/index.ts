@@ -72,12 +72,12 @@ async function runBot() {
                 await sleepyDev(innerRpcInterval);
                 const txn = await solanaConnection.getTransaction(signature);
 
-                //Do something better than continue over? TODO: Also this is spitting out [object, object] in some cases..Fix that
+                //Do something better than continue over? TODO: Also this is spitting out [object, object] in some cases..Fix that (check solana program errors..)
                 if (txn?.meta?.err != null) {
                     log.warn(
                         `getTransaction errored with: ${getErrorMessage(
                             txn.meta.err
-                        )}`
+                        )} on sig: ${signature}`
                     );
                     continue;
                 }
@@ -88,13 +88,7 @@ async function runBot() {
                 const preBalanceZeroIndex = txn?.meta?.preBalances[0] ?? 0;
                 const postBalanceZeroIndex = txn?.meta?.postBalances[0] ?? 0;
 
-                const dateString = new Date(
-                    blockTime * 1000
-                ).toLocaleDateString();
-                const hourString = new Date(
-                    blockTime * 1000
-                ).toLocaleTimeString();
-                const dateTimeString = `${dateString} ${hourString}`;
+                const dateTimeString = new Date(blockTime * 1000).toUTCString();
 
                 const price =
                     Math.abs(preBalanceZeroIndex - postBalanceZeroIndex) /
@@ -103,7 +97,7 @@ async function runBot() {
                 const accounts = txn?.transaction.message.accountKeys;
                 const accountsLength = accounts?.length ?? 0;
 
-                //yeah idk dude.. I should probably look into this as opposed to just assuming it works..
+                //TODO: Review this, need to account for auctions..
                 const marketplaceAccount =
                     accounts![accountsLength - 1].toString();
 
@@ -202,14 +196,20 @@ const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
             media: Buffer.from(image.data, "binary").toString("base64"),
         });
 
-        //signature should be solscan link.. not just the tx
-        const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} \n Time Of Sale: ${bearSalesInfo.timeOfSale}\n Marketplace: ${bearSalesInfo.marketplaceName}\n Price:${bearSalesInfo.salesPrice} SOL \n Txn: ${bearSalesInfo.signature}.`;
+        const tweet = `Okay Bears Green Sale! ${
+            bearSalesInfo.bearMetaData.name
+        } #WAGBO
+        \nTime Of Sale: ${bearSalesInfo.timeOfSale}
+        \nMarketplace: ${bearSalesInfo.marketplaceName ?? "???"}
+        \nPrice: ${bearSalesInfo.salesPrice} SOL 
+        \nTxn: https://explorer.solana.com/tx/${bearSalesInfo.signature}.`;
 
         const res = await twitterClient.tweets.statusesUpdate({
             status: tweet,
             media_ids: media.media_id_string,
         });
-        log.info("Tweet sent!", res); //TODO: Look as res - see if there is anything we want to pull out to log
+
+        log.info(`Tweet sent! Id: ${res.id} Time Sent: ${res.created_at}`);
         // This catch block is a little messy it could probably be cleaned up by just building an error handler that's more than a basic function
     } catch (e) {
         //I should probably expand on TwitterResponse interface so I don't have to log json but it works

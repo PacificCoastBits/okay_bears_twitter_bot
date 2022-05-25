@@ -8,8 +8,8 @@ export const MarketplaceMap = new Map<string, string>([
     ["CJsLwbP1iu5DuUikHEJnLfANgKy6stB2uFgvBBHoyxwz", "Solanart"],
     ["A7p8451ktDCHq5yYaHczeLMYsjRsAkzc3hCXcSrwYHU7", "DigitalEyes"],
     ["AmK5g2XcyptVLCFESBCJqoSfwV3znGoVYQnqEnaAZKWn", "ExchangeArt"],
-    [
+    /*[
         "hausS13jsjafwWwGqZTUQRmWyvyxn9EQpqMwV1PBBmk",
         "Auction House - Contract/Not a marketplace",
-    ], // This is a crutch - I need to find a new way to find the market of apps using this contract same as the Tokenkeg ones
+    ],8*/ // This is a crutch - I need to find a new way to find the market of apps using this contract same as the Tokenkeg ones
 ]);
