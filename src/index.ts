@@ -46,6 +46,8 @@ async function runBot() {
 
     options.until = process.env.SEED_TRANSACTION;
 
+    //TODO:
+    //1) make this a general green bear intrest bot (e.g tweet out fun stats about bears every x hours)
     //So if it's not going to be pub/sub having it in a loop is still not the best idea.
     //Consider introducing a job scheduler and having that execute on x interval then
     //just have the app suspended or in some similar state..I think I can do this all with node-cron
