@@ -246,5 +246,4 @@ const printSalesInfo = (bearSalesInfo: BearSalesInfo) => {
 const sleepyDev = (ms: number) =>
     new Promise((res) => {
         setTimeout(res, ms);
-        log.info(`Dev Sleeping for ${ms} ms`);
     });
