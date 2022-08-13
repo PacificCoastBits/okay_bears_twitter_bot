@@ -199,7 +199,7 @@ const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
         const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} #WAGBO
         \nTime Of Sale: ${bearSalesInfo.timeOfSale}
         \nPrice: ${bearSalesInfo.salesPrice} SOL 
-        \nTxn: https://explorer.solana.com/tx/${bearSalesInfo.signature}.`;
+        \nTxn: https://solana.fm/tx/${bearSalesInfo.signature}.`;
 
         const res = await twitterClient.tweets.statusesUpdate({
             status: tweet,
