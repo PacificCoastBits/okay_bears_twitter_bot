@@ -196,11 +196,8 @@ const postSaleToTwitter = async (bearSalesInfo: BearSalesInfo) => {
             media: Buffer.from(image.data, "binary").toString("base64"),
         });
 
-        const tweet = `Okay Bears Green Sale! ${
-            bearSalesInfo.bearMetaData.name
-        } #WAGBO
+        const tweet = `Okay Bears Green Sale! ${bearSalesInfo.bearMetaData.name} #WAGBO
         \nTime Of Sale: ${bearSalesInfo.timeOfSale}
-        \nMarketplace: ${bearSalesInfo.marketplaceName ?? "???"}
         \nPrice: ${bearSalesInfo.salesPrice} SOL 
         \nTxn: https://explorer.solana.com/tx/${bearSalesInfo.signature}.`;
 
